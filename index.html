@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cloud & Sunset Toy — living sky</title>
+<style>
+  :root {
+    --ui-bg: #0e0f12;
+    --ui-panel: #171922cc;
+    --ui-accent: #ff7b4a;
+    --ui-text: #e8e9ed;
+    --ui-sub: #9aa0a6;
+  }
+  html, body {
+    margin:0; padding:0;
+    background: radial-gradient(1200px 600px at 70% 10%, #111522 0%, #0b0d12 60%, #07090d 100%);
+    color: var(--ui-text);
+    font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+    height:100%;
+    overflow:hidden;
+  }
+  #wrap {
+    position:fixed; inset:0; display:grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  canvas#view {
+    width:100vw; height:100vh; display:block; background:transparent;
+    cursor: crosshair;
+  }
+  /* Control panel */
+  #panel {
+    position: fixed; right: 18px; top: 18px; width: 360px; max-width: calc(100vw - 24px);
+    background: var(--ui-panel); backdrop-filter: blur(8px);
+    border: 1px solid #23262f; border-radius: 12px; padding: 14px 14px 10px 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    user-select: none;
+  }
+  #panel h1 {
+    margin: 0 0 8px 0; font-size: 16px; letter-spacing:.4px; display:flex; align-items:center; gap:8px;
+  }
+  #panel h1 .dot { width:10px; height:10px; border-radius:50%; background: var(--ui-accent); box-shadow:0 0 20px var(--ui-accent);} 
+  .sub { color: var(--ui-sub); font-size:12px; margin: 2px 0 10px 0;}
+  .row { display:grid; grid-template-columns: 1fr 80px; align-items:center; gap:10px; margin:8px 0; }
+  .row label { font-size:12px; color:#cfd3da; }
+  input[type=range] { width:100%; accent-color: var(--ui-accent); }
+  input[type=number] { width:100%; background:#0d0f14; color:var(--ui-text); border:1px solid #2a2e38; border-radius:8px; padding:6px 8px; }
+  .buttons { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  button {
+    background:#1e212b; color:var(--ui-text); border:1px solid #2b2f3a; border-radius:10px; padding:8px 10px;
+    cursor:pointer; transition: transform .06s ease, background .2s ease, border-color .2s ease;
+  }
+  button:hover { background:#242837; }
+  button:active { transform: scale(.98); }
+  .pill { padding:6px 10px; font-size:12px; border-radius:999px; }
+  .row small { justify-self:end; color:#a9b0ba; font-variant-numeric: tabular-nums; }
+  .grid {
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:6px;
+  }
+  #legend { font-size:12px; color:#b7bdc8; margin-top:6px; }
+  #toast {
+    position: fixed; left: 18px; bottom: 18px; padding:10px 12px; border-radius:10px;
+    background:#151822cc; border:1px solid #262a35; color:#d9dbe3; opacity:.92;
+  }
+  @media (max-width: 880px) {
+    #panel { width: calc(100% - 24px); left: 12px; right: 12px; top: auto; bottom: 12px; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="view"></canvas>
+  <aside id="panel" aria-label="controls">
+    <h1><span class="dot"></span> Cloud • Sunset Toy</h1>
+    <div class="sub">Paint humidity on the canvas (drag). Shift-drag to erase. Try the presets, then sweep the sun 🌅</div>
+
+    <div class="row">
+      <label>Sun elevation</label>
+      <small id="val-elev">20°</small>
+      <input id="elev" type="range" min="0" max="85" step="1" value="20" />
+    </div>
+    <div class="row">
+      <label>Sun azimuth</label>
+      <small id="val-az">-10°</small>
+      <input id="az" type="range" min="-180" max="180" step="1" value="-10" />
+    </div>
+    <div class="row">
+      <label>Day warmth</label>
+      <small id="val-warm">0.75</small>
+      <input id="warm" type="range" min="0" max="1" step="0.01" value="0.75" />
+    </div>
+    <div class="row">
+      <label>Coverage</label>
+      <small id="val-cov">0.45</small>
+      <input id="cov" type="range" min="0" max="1" step="0.01" value="0.45" />
+    </div>
+    <div class="row">
+      <label>Turbulence</label>
+      <small id="val-turb">1.20</small>
+      <input id="turb" type="range" min="0.3" max="2.0" step="0.01" value="1.20" />
+    </div>
+    <div class="row">
+      <label>Wind speed</label>
+      <small id="val-wspd">0.40</small>
+      <input id="wspd" type="range" min="0" max="1.2" step="0.01" value="0.40" />
+    </div>
+    <div class="row">
+      <label>Wind dir</label>
+      <small id="val-wdir">15°</small>
+      <input id="wdir" type="range" min="-180" max="180" step="1" value="15" />
+    </div>
+    <div class="row">
+      <label>Resolution</label>
+      <small id="val-res">Medium</small>
+      <input id="res" type="range" min="1" max="3" step="1" value="2" />
+    </div>
+    <div class="buttons">
+      <button id="sunset" class="pill">Sunset Sweep</button>
+      <button id="pause" class="pill">Pause</button>
+      <button id="seed" class="pill">Randomize</button>
+    </div>
+    <div class="grid" style="margin-top:8px">
+      <button data-preset="stratus">Stratus</button>
+      <button data-preset="cumulus">Cumulus</button>
+      <button data-preset="cirrus">Cirrus</button>
+    </div>
+    <div id="legend">Tip: for chunky cumulus, increase Coverage and reduce Turbulence; for wispy cirrus, lower Coverage, increase Turbulence, and raise Wind speed. 🌬️</div>
+  </aside>
+  <div id="toast">drag to add humidity • Shift-drag to erase</div>
+</div>
+
+<script>
+(() => {
+  // ========= Utilities =========
+  const clamp = (v, a=0, b=1) => v < a ? a : (v > b ? b : v);
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const smoothstep = (a,b,t)=>{t=clamp((t-a)/(b-a));return t*t*(3-2*t);}
+  const TAU = Math.PI*2;
+
+  // Permutation for Perlin (improved; same table doubled)
+  const perm = (() => {
+    const p = new Uint8Array(512);
+    let seed = (Math.random()*1e9)>>>0;
+    const rand = () => (seed = (1664525*seed + 1013904223)>>>0) / 0xffffffff;
+    const base = new Uint8Array(256);
+    for (let i=0;i<256;i++) base[i]=i;
+    for (let i=255;i>0;i--) { const j = (rand()* (i+1))|0; const t=base[i]; base[i]=base[j]; base[j]=t; }
+    for (let i=0;i<512;i++) p[i]=base[i&255];
+    return p;
+  })();
+
+  function fade(t){return t*t*t*(t*(t*6-15)+10);} 
+  function grad(hash,x,y,z){
+    const h = hash & 15;
+    const u = h<8 ? x : y;
+    const v = h<4 ? y : (h===12||h===14? x : z);
+    return ((h&1)?-u:u)+((h&2)?-v:v);
+  }
+  function perlin3(x,y,z){
+    const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z);
+    x -= X; y -= Y; z -= Z;
+    const u=fade(x), v=fade(y), w=fade(z);
+    const A = perm[X&255]+Y, AA = perm[A&255]+Z, AB = perm[(A+1)&255]+Z;
+    const B = perm[(X+1)&255]+Y, BA = perm[B&255]+Z, BB = perm[(B+1)&255]+Z;
+
+    return lerp(
+      lerp(
+        lerp( grad(perm[AA&255], x  , y  , z   ),
+              grad(perm[(BA)&255], x-1, y  , z   ), u),
+        lerp( grad(perm[(AB)&255], x  , y-1, z   ),
+              grad(perm[(BB)&255], x-1, y-1, z   ), u), v),
+      lerp(
+        lerp( grad(perm[(AA+1)&255], x  , y  , z-1 ),
+              grad(perm[(BA+1)&255], x-1, y  , z-1 ), u),
+        lerp( grad(perm[(AB+1)&255], x  , y-1, z-1 ),
+              grad(perm[(BB+1)&255], x-1, y-1, z-1 ), u), v),
+      w);
+  }
+  function fbm3(x,y,z, oct=4, lac=2.01, gain=0.5){
+    let a=0, amp=0.5, freq=1;
+    for(let i=0;i<oct;i++){
+      a += amp * perlin3(x*freq, y*freq, z*freq);
+      amp *= gain; freq *= lac;
+    }
+    return a;
+  }
+
+  // ========= Simulation State =========
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  let DPR = Math.min(2, (window.devicePixelRatio||1));
+
+  // Low-res field we render then scale up (performance & softness)
+  let scaleTier = 2; // 1=High, 2=Medium, 3=Low
+  const tierToRes = () => {
+    const w = Math.round(window.innerWidth);
+    const h = Math.round(window.innerHeight);
+    const div = (scaleTier===1?1.4:(scaleTier===2?2.2:3.0));
+    return [Math.max(140, Math.round(w/div)), Math.max(80, Math.round(h/div))];
+  };
+
+  let W=0, H=0;
+  let density, humidity, temp, tmpD; // Float32Arrays
+  let off, offCtx, idata, pixels;
+
+  const params = {
+    elev: 20 * Math.PI/180,
+    az: -10 * Math.PI/180,
+    warm: 0.75,      // 0 = cold midday blue, 1 = warm sunset
+    coverage: 0.45,  // baseline cloudiness
+    turb: 1.20,      // turbulence multiplier
+    windSpeed: 0.40, // world-space advection strength
+    windDir: 15 * Math.PI/180,
+    paused: false,
+  };
+
+  let t=0, last=0, running=true, animateSun=false;
+  let seedTime = Math.random()*1000;
+
+  function resize(){
+    canvas.width = Math.round(window.innerWidth * DPR);
+    canvas.height= Math.round(window.innerHeight* DPR);
+    canvas.style.width = '100vw'; canvas.style.height='100vh';
+
+    const [rw,rh] = tierToRes();
+    W = rw|0; H = rh|0;
+
+    off = document.createElement('canvas');
+    off.width = W; off.height = H;
+    offCtx = off.getContext('2d', { willReadFrequently: true });
+    idata = offCtx.getImageData(0,0,W,H);
+    pixels = idata.data;
+
+    density = new Float32Array(W*H);
+    humidity= new Float32Array(W*H);
+    temp    = new Float32Array(W*H);
+    tmpD    = new Float32Array(W*H);
+
+    // initialize a gentle sky
+    for (let y=0;y<H;y++){
+      for (let x=0;x<W;x++){
+        const i = x + y*W;
+        const gy = y/H;
+        humidity[i] = 0.2 + 0.2*(1-gy);
+        temp[i] = 0.5 + 0.3*(1-gy);
+        density[i] = 0;
+      }
+    }
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  // ========= Input (painting humidity) =========
+  let painting=false, erasing=false, mx=0,my=0;
+  function screenToField(x,y){
+    const fx = (x / canvas.clientWidth) * W;
+    const fy = (y / canvas.clientHeight)* H;
+    return [fx,fy];
+  }
+  function dab(fx,fy, add=1){
+    const r = 18; // brush radius (field space)
+    const r2 = r*r;
+    const cx = Math.round(fx), cy = Math.round(fy);
+    for (let y=-r; y<=r; y++){
+      const yy = cy + y; if (yy<0||yy>=H) continue;
+      for (let x=-r; x<=r; x++){
+        const xx = cx + x; if (xx<0||xx>=W) continue;
+        const d2 = x*x+y*y; if (d2>r2) continue;
+        const i = xx + yy*W;
+        const fall = 1 - d2/r2;
+        if (add>0) {
+          humidity[i] = clamp(humidity[i] + 0.025*fall);
+        } else {
+          // erase humidity & density
+          humidity[i] = Math.max(0, humidity[i] - 0.05*fall);
+          density[i]  = Math.max(0, density[i] - 0.05*fall);
+        }
+      }
+    }
+  }
+  function pointer(e){
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches? e.touches[0].clientY : e.clientY) - rect.top;
+    [mx,my] = screenToField(x,y);
+    if (painting) dab(mx,my, erasing? -1 : 1);
+  }
+  canvas.addEventListener('mousedown', e => { painting=true; erasing=e.shiftKey; pointer(e); });
+  window.addEventListener('mouseup', ()=> painting=false);
+  canvas.addEventListener('mousemove', pointer);
+  canvas.addEventListener('touchstart', e => { painting=true; erasing=e.shiftKey; pointer(e); }, {passive:true});
+  canvas.addEventListener('touchmove', pointer, {passive:true});
+  canvas.addEventListener('touchend', ()=> painting=false);
+
+  // ========= Flow field (curl noise) =========
+  function flowAt(x,y,time, scale, turb){
+    // divergenceless rotational field using perpendicular gradient of noise
+    const s = scale * turb;
+    const k = 0.0035; // derivative step
+    const nx = x*s, ny = y*s, nz = time*0.07;
+    const n1 = fbm3(nx,     ny,     nz, 4, 2.03, 0.5);
+    const n2 = fbm3(nx+k,   ny,     nz, 4, 2.03, 0.5);
+    const n3 = fbm3(nx,     ny+k,   nz, 4, 2.03, 0.5);
+    const dx = (n2 - n1)/k;
+    const dy = (n3 - n1)/k;
+    // perpendicular for curl-ish swirl
+    return [ dy, -dx ];
+  }
+
+  // ========= Sky color =========
+  function skyColor(yN, warm){
+    // yN in [0,1] top->bottom; warm in [0,1] for time-of-day
+    // Interpolate between cool midday gradient and warm sunset gradient
+    const coolTop = [22, 35, 70], coolBot = [156,180,210];
+    const warmTop = [18, 24, 52], warmBot = [255, 137, 74];
+    const top = [
+      lerp(coolTop[0], warmTop[0], warm),
+      lerp(coolTop[1], warmTop[1], warm),
+      lerp(coolTop[2], warmTop[2], warm)
+    ];
+    const bot = [
+      lerp(coolBot[0], warmBot[0], warm),
+      lerp(coolBot[1], warmBot[1], warm),
+      lerp(coolBot[2], warmBot[2], warm)
+    ];
+    const col = [
+      lerp(top[0], bot[0], 1-yN),
+      lerp(top[1], bot[1], 1-yN),
+      lerp(top[2], bot[2], 1-yN)
+    ];
+    return col;
+  }
+
+  // ========= Main Simulation Step =========
+  function step(dt){
+    // parameters for "microphysics" fakes
+    const advect = 45; // base advection speed in field coords/sec
+    const evap = 0.06; // base evaporation
+    const condense = 0.10; // condensation rate from humidity to cloud
+    const diss = 0.02; // density dissipation
+    const heatUp = 0.05; // surface heating rate
+    const dewBias = 0.5;
+
+    // global wind vector
+    const wvx = Math.cos(params.windDir) * params.windSpeed * advect;
+    const wvy = Math.sin(params.windDir) * params.windSpeed * advect;
+
+    const scale = 0.005; // world scaling for noise
+
+    // 1) Advect density along flow + wind (semi-Lagrangian)
+    tmpD.fill(0);
+    for (let y=0;y<H;y++){
+      for (let x=0;x<W;x++){
+        const i = x + y*W;
+        // compute flow
+        const [fx, fy] = flowAt(x, y, seedTime + t, scale, params.turb);
+        const vx = fx*advect + wvx;
+        const vy = fy*advect + wvy - 7*(1 - y/H); // gentle upward lift (convection)
+        const px = x - vx*dt;
+        const py = y - vy*dt;
+
+        // bilinear sample
+        const x0 = Math.floor(px), y0 = Math.floor(py);
+        const tx = px - x0, ty = py - y0;
+
+        if (x0>=0 && x0<W-1 && y0>=0 && y0<H-1) {
+          const i00 = x0 + y0*W, i10 = i00+1, i01 = i00+W, i11 = i01+1;
+          const d =
+            density[i00]*(1-tx)*(1-ty) +
+            density[i10]*(tx)*(1-ty) +
+            density[i01]*(1-tx)*(ty) +
+            density[i11]*(tx)*(ty);
+          tmpD[i] = d;
+        } else {
+          tmpD[i] = 0;
+        }
+      }
+    }
+
+    // swap
+    [density, tmpD] = [tmpD, density];
+
+    // 2) Surface heating & humidity feed (low altitude gains heat/humidity)
+    for (let y=0;y<H;y++){
+      const gy = y/H;
+      const heat = heatUp * (1 - gy) * dt;          // warmer near "ground"
+      const humidFeed = 0.015 * (1 - gy) * dt;      // moisture source low
+      for (let x=0;x<W;x++){
+        const i = x + y*W;
+        temp[i] = clamp(temp[i] + heat - 0.01*dt);  // radiative cooling
+        humidity[i] = clamp(humidity[i] + humidFeed - evap*humidity[i]*dt*0.5);
+      }
+    }
+
+    // 3) Condensation where humidity + cool air meet; evaporate elsewhere
+    // Also add gentle dissipation of cloud density
+    for (let i=0;i<W*H;i++){
+      const dew = dewBias - 0.25*temp[i]; // lower temp -> more likely to condense
+      if (humidity[i] > dew){
+        const delta = condense * (humidity[i]-dew) * dt;
+        density[i]  = clamp(density[i] + delta, 0, 1.5);
+        humidity[i] = clamp(humidity[i] - delta*0.8, 0, 1);
+        temp[i]     = clamp(temp[i] - delta*0.15, 0, 1); // latent heat sink
+      } else {
+        // slow return of small density to humidity (evap)
+        const back = Math.min(density[i], diss*dt);
+        density[i] -= back;
+        humidity[i] = clamp(humidity[i] + back*0.5, 0, 1);
+      }
+      // overall dissipation
+      density[i] *= (1 - diss*dt);
+    }
+
+    // 4) Global coverage bias nudges density toward target coverage
+    if (params.coverage !== 0.5){
+      const bias = (params.coverage - 0.5) * 0.45 * dt;
+      for (let i=0;i<W*H;i++) {
+        density[i] = clamp(density[i] + bias * (0.6 + 0.6*humidity[i]));
+      }
+    }
+  }
+
+  // ========= Lighting & Render =========
+  function render(){
+    const sunEl = params.elev, sunAz = params.az;
+    // sun direction in screen space (x right, y down, z out of screen)
+    const Lx = Math.cos(sunEl) * Math.cos(sunAz);
+    const Ly = Math.cos(sunEl) * Math.sin(sunAz);
+    const Lz = Math.sin(sunEl);
+
+    // shades
+    for (let y=1;y<H-1;y++){
+      const yN = 1 - (y/(H-1));
+      const sky = skyColor(yN, params.warm);
+      const row = y*W;
+      for (let x=1;x<W-1;x++){
+        const i = row + x;
+        const d = clamp(density[i], 0, 1.2);
+
+        // gradient -> pseudo normal (screen-space)
+        const dx = (density[i+1] - density[i-1])*0.5;
+        const dy = (density[i+W] - density[i-W])*0.5;
+        // normal pointing toward viewer z positive
+        let nx = -dx*2.0, ny = -dy*2.0, nz = 1.0;
+        const invLen = 1/Math.hypot(nx,ny,nz); nx*=invLen; ny*=invLen; nz*=invLen;
+
+        // lighting
+        let diffuse = clamp(nx*Lx + ny*Ly + nz*Lz, 0, 1);
+        // silver lining: rim when facing away from sun
+        const rim = Math.pow(clamp(1 - (nx*Lx + ny*Ly + nz*Lz), 0, 1), 2.4);
+
+        // colors
+        const shadowCol = [200, 210, 220];
+        const lightCol  = [
+          lerp(255, 255, params.warm),
+          lerp(255, 210, params.warm),
+          lerp(255, 160, params.warm)
+        ];
+
+        // mix cloud color
+        const cloudR = lerp(shadowCol[0], lightCol[0], diffuse) + rim*45*params.warm;
+        const cloudG = lerp(shadowCol[1], lightCol[1], diffuse) + rim*35*params.warm;
+        const cloudB = lerp(shadowCol[2], lightCol[2], diffuse) + rim*10*params.warm;
+
+        // alpha from density with soft knee
+        const a = smoothstep(0.05, 0.95, d);
+
+        const idx = i*4;
+        pixels[idx+0] = (sky[0]*(1-a) + cloudR*a) | 0;
+        pixels[idx+1] = (sky[1]*(1-a) + cloudG*a) | 0;
+        pixels[idx+2] = (sky[2]*(1-a) + cloudB*a) | 0;
+        pixels[idx+3] = 255;
+      }
+    }
+
+    offCtx.putImageData(idata, 0, 0);
+
+    // upscale nicely
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(off, 0, 0, canvas.width/DPR, canvas.height/DPR);
+  }
+
+  // ========= Animation Loop =========
+  function tick(ms){
+    if (!running) return;
+    requestAnimationFrame(tick);
+    if (!last) last=ms;
+    let dt = Math.min(0.05, (ms-last)/1000);
+    last = ms;
+
+    if (animateSun){
+      // ease sun toward horizon, then oscillate a bit
+      params.elev = Math.max(0, params.elev - 0.15*dt);
+      params.warm = clamp(params.warm + 0.20*dt, 0, 1);
+      elevEl.value = Math.round(params.elev*180/Math.PI);
+      warmEl.value = params.warm.toFixed(2);
+      valElev.textContent = `${Math.round(params.elev*180/Math.PI)}°`;
+      valWarm.textContent = params.warm.toFixed(2);
+    }
+
+    if (!params.paused){
+      t += dt;
+      step(dt);
+    }
+    render();
+  }
+  requestAnimationFrame(tick);
+
+  // ========= UI Wiring =========
+  const elevEl = document.getElementById('elev');
+  const valElev= document.getElementById('val-elev');
+  elevEl.addEventListener('input', e=>{
+    params.elev = (+e.target.value)*Math.PI/180;
+    valElev.textContent = `${e.target.value}°`;
+  });
+
+  const azEl = document.getElementById('az');
+  const valAz= document.getElementById('val-az');
+  azEl.addEventListener('input', e=>{
+    params.az = (+e.target.value)*Math.PI/180;
+    valAz.textContent = `${e.target.value}°`;
+  });
+
+  const warmEl = document.getElementById('warm');
+  const valWarm= document.getElementById('val-warm');
+  warmEl.addEventListener('input', e=>{
+    params.warm = +e.target.value;
+    valWarm.textContent = e.target.value;
+  });
+
+  const covEl = document.getElementById('cov');
+  const valCov= document.getElementById('val-cov');
+  covEl.addEventListener('input', e=>{
+    params.coverage = +e.target.value;
+    valCov.textContent = e.target.value;
+  });
+
+  const turbEl = document.getElementById('turb');
+  const valTurb= document.getElementById('val-turb');
+  turbEl.addEventListener('input', e=>{
+    params.turb = +e.target.value;
+    valTurb.textContent = e.target.value;
+  });
+
+  const wspdEl = document.getElementById('wspd');
+  const valWspd= document.getElementById('val-wspd');
+  wspdEl.addEventListener('input', e=>{
+    params.windSpeed = +e.target.value;
+    valWspd.textContent = e.target.value;
+  });
+
+  const wdirEl = document.getElementById('wdir');
+  const valWdir= document.getElementById('val-wdir');
+  wdirEl.addEventListener('input', e=>{
+    params.windDir = (+e.target.value)*Math.PI/180;
+    valWdir.textContent = `${e.target.value}°`;
+  });
+
+  const resEl = document.getElementById('res');
+  const valRes= document.getElementById('val-res');
+  const resMap = {1:'High',2:'Medium',3:'Low'};
+  resEl.addEventListener('input', e=>{
+    scaleTier = +e.target.value;
+    valRes.textContent = resMap[scaleTier]||'Medium';
+    resize();
+  });
+  valRes.textContent = resMap[scaleTier];
+
+  document.getElementById('seed').addEventListener('click', ()=>{
+    seedTime = Math.random()*1000 + 100;
+  });
+
+  document.getElementById('pause').addEventListener('click', (e)=>{
+    params.paused = !params.paused;
+    e.target.textContent = params.paused? 'Resume' : 'Pause';
+  });
+
+  document.getElementById('sunset').addEventListener('click', (e)=>{
+    animateSun = !animateSun;
+    e.target.textContent = animateSun? 'Stop Sweep' : 'Sunset Sweep';
+  });
+
+  // Presets
+  document.querySelectorAll('[data-preset]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const p = btn.dataset.preset;
+      if (p==='stratus'){
+        params.coverage = 0.62; covEl.value = params.coverage; valCov.textContent = covEl.value;
+        params.turb = 0.65; turbEl.value=params.turb; valTurb.textContent = turbEl.value;
+        params.windSpeed=0.35; wspdEl.value=params.windSpeed; valWspd.textContent = wspdEl.value;
+        params.elev = 8*Math.PI/180; elevEl.value = 8; valElev.textContent='8°';
+        params.warm = 0.9; warmEl.value='0.9'; valWarm.textContent='0.9';
+      } else if (p==='cumulus'){
+        params.coverage = 0.50; covEl.value = params.coverage; valCov.textContent = covEl.value;
+        params.turb = 1.0; turbEl.value=params.turb; valTurb.textContent = turbEl.value;
+        params.windSpeed=0.25; wspdEl.value=params.windSpeed; valWspd.textContent = wspdEl.value;
+        params.elev = 32*Math.PI/180; elevEl.value = 32; valElev.textContent='32°';
+        params.warm = 0.6; warmEl.value='0.6'; valWarm.textContent='0.6';
+      } else if (p==='cirrus'){
+        params.coverage = 0.25; covEl.value = params.coverage; valCov.textContent = covEl.value;
+        params.turb = 1.7; turbEl.value=params.turb; valTurb.textContent = turbEl.value;
+        params.windSpeed=0.70; wspdEl.value=params.windSpeed; valWspd.textContent = wspdEl.value;
+        params.elev = 18*Math.PI/180; elevEl.value = 18; valElev.textContent='18°';
+        params.warm = 0.8; warmEl.value='0.8'; valWarm.textContent='0.8';
+      }
+    });
+  });
+
+  // Keyboard: space pauses, S = sweep, R = seed, Shift = erase while down
+  window.addEventListener('keydown', (e)=>{
+    if (e.code==='Space'){ params.paused=!params.paused; document.getElementById('pause').textContent = params.paused? 'Resume' : 'Pause'; }
+    if (e.key==='s' || e.key==='S'){ animateSun=!animateSun; document.getElementById('sunset').textContent = animateSun? 'Stop Sweep' : 'Sunset Sweep'; }
+    if (e.key==='r' || e.key==='R'){ seedTime = Math.random()*1000 + 100; }
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -3,28 +3,29 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cloud & Sunset Toy — Per‑Layer Memory Edition (Compact UI + Minimize)</title>
+<title>Cloud Lounge</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root{--panel:#171a23cc;--border:#272b36;--text:#e9ecf2;--sub:#a5adba;--accent:#ff7b4a}
-  html,body{margin:0;height:100%;background:#0b0e14;color:var(--text);font:12px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;overflow:hidden}
+  html,body{margin:0;height:100%;background:#0b0e14;color:var(--text);font:12px/1.35 Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
   canvas{display:block;width:100vw;height:100vh}
-  #panel{position:fixed;right:12px;top:12px;width:480px;max-width:calc(100vw - 24px);background:var(--panel);border:1px solid var(--border);backdrop-filter:blur(6px);border-radius:10px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.35);user-select:none}
-  #panel.collapsed{background:transparent;border:0;box-shadow:none;padding:0;width:auto}
-  #panel.collapsed h1{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:4px 6px;margin:0}
-  #panelBody{margin-top:6px}
-  #panel.collapsed #panelBody{display:none}
-  h1{margin:0 0 6px 0;font-size:14px;display:flex;align-items:center;gap:8px}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
-  #togglePanel{margin-left:auto;background:#0f1219;color:var(--text);border:1px solid #2a2f3a;border-radius:8px;padding:4px 8px;cursor:pointer}
-  #togglePanel:hover{background:#151a25}
-  .sub{color:var(--sub);font-size:11px;margin:0 0 6px}
-  .row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;margin:2px 0}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #panel{position:fixed;right:12px;top:12px;width:520px;max-width:calc(100vw - 24px);background:var(--panel);border:1px solid var(--border);backdrop-filter:blur(6px);border-radius:12px;padding:8px 8px 10px 10px;box-shadow:0 10px 30px rgba(0,0,0,.35);user-select:none;transition:width .2s ease, height .2s ease, opacity .2s ease}
+  #panel.collapsed{width:auto;height:auto;padding:6px 6px 6px 10px}
+  h1{margin:0;font:600 18px/1.1 "Baloo 2", Inter, system-ui;letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+  .titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+  #toggle{background:#0f1219;border:1px solid #2a2f3a;border-radius:999px;color:var(--text);width:28px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  #toggle:hover{background:#151a25}
+  #panelContent{display:block}
+  #panel.collapsed #panelContent{display:none}
+  .row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;margin:3px 0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .group{border-top:1px solid #222633;margin-top:6px;padding-top:6px}
   label{font-size:11px;color:#c9ced9;white-space:nowrap}
   small{justify-self:end;color:#a9b0ba;font-variant-numeric:tabular-nums}
   input[type=range]{width:100%;accent-color:var(--accent)}
-  select,button,input[type=number]{background:#0f1219;color:var(--text);border:1px solid #2a2f3a;border-radius:8px;padding:4px 6px}
+  select,button,input[type=color]{background:#0f1219;color:var(--text);border:1px solid #2a2f3a;border-radius:10px;padding:6px 8px}
+  input[type=color]{padding:0;width:36px;height:24px}
   button{cursor:pointer}
   button:hover{background:#151a25}
   .pill{padding:6px 8px;border-radius:999px}
@@ -36,10 +37,11 @@
 <body>
 <canvas id="view"></canvas>
 <aside id="panel">
-  <h1><span class="dot"></span> Cloud • Sunset Toy — Per‑Layer Memory <button id="togglePanel">–</button></h1>
-  <div id="panelBody">
-    <div class="sub">Per‑layer seeds & parameters; switching layers recalls that layer’s settings. Drag to paint humidity. <b>Shift</b> to erase.</div>
-
+  <div class="titlebar">
+    <h1><span class="dot"></span> Cloud Lounge</h1>
+    <button id="toggle">–</button>
+  </div>
+  <div id="panelContent">
     <div class="two">
       <div class="row"><label>Layers</label><input id="layers" type="range" min="1" max="5" step="1" value="3"/><small id="val-layers">3</small></div>
       <div class="row"><label>Paint layer</label><select id="paintLayer"></select><small></small></div>
@@ -80,6 +82,17 @@
         <div class="row"><label>Decay</label><input id="decay" type="range" min="0.005" max="0.08" step="0.001"/><small id="val-decay">0.020</small></div>
         <div class="row"><label>Lift</label><input id="lift" type="range" min="0" max="16" step="0.1"/><small id="val-lift">7.0</small></div>
         <div class="row"><label>Charge</label><input id="charge" type="range" min="0" max="2.0" step="0.01"/><small id="val-charge">0.60</small></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="two">
+        <div class="row"><label>Cloud light</label><input id="cloudLight" type="color"/><small id="val-cl">#FFFFFF</small></div>
+        <div class="row"><label>Cloud shadow</label><input id="cloudShadow" type="color"/><small id="val-cs">#C8D2E0</small></div>
+        <div class="row"><label>Layer opacity</label><input id="layerOpacity" type="range" min="0" max="1" step="0.01" value="1"/><small id="val-op">1.00</small></div>
+        <div class="row"><label>Layer bg top</label><input id="bgTop" type="color"/><small id="val-bgt">#162A44</small></div>
+        <div class="row"><label>Layer bg bottom</label><input id="bgBottom" type="color"/><small id="val-bgb">#9BC7FF</small></div>
+        <div class="row"><label>Layer bg strength</label><input id="bgStrength" type="range" min="0" max="1" step="0.01" value="0"/><small id="val-bgs">0.00</small></div>
       </div>
     </div>
 
@@ -137,16 +150,24 @@
   const liftEl=qs('lift'), valLift=qs('val-lift');
   const chargeEl=qs('charge'), valCharge=qs('val-charge');
 
+  const clightEl=qs('cloudLight'), valCL=qs('val-cl');
+  const cshadowEl=qs('cloudShadow'), valCS=qs('val-cs');
+  const opEl=qs('layerOpacity'), valOP=qs('val-op');
+  const bgtEl=qs('bgTop'), valBGT=qs('val-bgt');
+  const bgbEl=qs('bgBottom'), valBGB=qs('val-bgb');
+  const bgsEl=qs('bgStrength'), valBGS=qs('val-bgs');
+
   const reseedLayerBtn=qs('reseedLayer');
   const reseedAllBtn=qs('reseedAll');
-  const toggleBtn=qs('togglePanel');
-  const panel=qs('panel');
-  const panelBody=qs('panelBody');
+  const toggleBtn=qs('toggle');
 
   const base={elev:18*Math.PI/180,az:-8*Math.PI/180,warm:0.85,fade:0.45,blur:3,parallax:0.55,spread:0.35,paused:false,shadeQ:1,depthBlur:false};
-  const LDEF={cov:0.55,turb:1.10,wind:0.40,wdir:20*Math.PI/180,temp:0.5,decay:0.02,lift:7.0,charge:0.6};
+  const LDEF={cov:0.55,turb:1.10,wind:0.40,wdir:20*Math.PI/180,temp:0.5,decay:0.02,lift:7.0,charge:0.6,clight:'#ffffff',cshadow:'#c8d2e0',opacity:1.0,bgTop:'#162a44',bgBottom:'#9bc7ff',bgStrength:0.0};
 
   let W=0,H=0; let layerCount=3; const layers=[];
+
+  function hexToRGB(h){h=h.replace('#','');if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];const n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255]}
+  function syncColors(L){L.cLight=hexToRGB(L.params.clight);L.cShadow=hexToRGB(L.params.cshadow);L.bgTopRGB=hexToRGB(L.params.bgTop);L.bgBottomRGB=hexToRGB(L.params.bgBottom)}
 
   function randomizeLayerSeeds(L){
     L.offX=(Math.random()*2000-1000);
@@ -179,7 +200,7 @@
     }
   }
   function makeLayer(){
-    const L={params:{...LDEF}}; randomizeLayerSeeds(L); allocFields(L); initFields(L); return L;
+    const L={params:{...LDEF}}; randomizeLayerSeeds(L); allocFields(L); initFields(L); syncColors(L); return L;
   }
 
   function ensureLayers(n){
@@ -209,7 +230,7 @@
   function fillSky(){const g=ctx.createLinearGradient(0,0,0,canvas.height);const wt=base.warm;const top=`rgb(${Math.round(lerp(22,18,wt))},${Math.round(lerp(35,24,wt))},${Math.round(lerp(70,52,wt))})`;const bot=`rgb(${Math.round(lerp(156,255,wt))},${Math.round(lerp(180,137,wt))},${Math.round(lerp(210,74,wt))})`;g.addColorStop(0,top);g.addColorStop(1,bot);ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width/DPR,canvas.height/DPR)}
   function drawHills(){}
 
-  function stepLayers(dt,frameCount){const adv=45,evap=0.06,cond=0.10,scale=0.005;const stagger=parseInt(staggerEl.value,10)||0;const doUpdate=(li)=>!stagger||((frameCount%stagger)===(li%stagger));
+  function stepLayers(dt,frameCount){const adv=45,cond=0.10,scale=0.005;const stagger=parseInt(staggerEl.value,10)||0;const doUpdate=(li)=>!stagger||((frameCount%stagger)===(li%stagger));
     for(let li=0;li<layers.length;li++){
       if(!doUpdate(li)) continue; const L=layers[li]; const depth=layers.length>1?li/(layers.length-1):0; const mid=(layers.length-1)/2; const rel=(li-mid)/(mid||1);
       const cov=L.params.cov + base.spread*rel*0.4; const turb=(L.params.turb*(1+base.spread*rel*0.6))*(1+L.turbJ); const wind0=L.params.wind*(1 - base.parallax*depth*0.85); const wind=wind0*(1+L.windJ); const wdir=L.params.wdir + L.wdirJ; const diss=L.params.decay; const lift=L.params.lift; const tempBase=L.params.temp;
@@ -229,10 +250,11 @@
 
   function renderAll(){fillSky(); const Lx=Math.cos(base.elev)*Math.cos(base.az), Ly=Math.cos(base.elev)*Math.sin(base.az), Lz=Math.sin(base.elev);
     for(let li=0;li<layers.length;li++){
-      const L=layers[li]; const depth=layers.length>1?li/(layers.length-1):0; const id=L.idata.data, dArr=L.density; const shadeQ=base.shadeQ|0; const charge=L.params.charge;
+      const L=layers[li]; const depth=layers.length>1?li/(layers.length-1):0; if(L.params.bgStrength>0){const g=ctx.createLinearGradient(0,0,0,canvas.height);const t=L.bgTopRGB,b=L.bgBottomRGB;g.addColorStop(0,`rgb(${t[0]},${t[1]},${t[2]})`);g.addColorStop(1,`rgb(${b[0]},${b[1]},${b[2]})`);ctx.save();ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalAlpha=L.params.bgStrength*(1-0.25*depth);ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width/DPR,canvas.height/DPR);ctx.restore();}
+      const id=L.idata.data, dArr=L.density; const shadeQ=base.shadeQ|0; const charge=L.params.charge; const light=L.cLight, shad=L.cShadow; const haze=[160,175,205];
       for(let y=1;y<H-1;y++){
         const row=y*W; for(let x=1;x<W-1;x++){
-          const i=row+x; const d=clamp(dArr[i],0,1.25); let r,g,b,a; if(shadeQ===0){const k=smoothstep(0.05,0.95,d); r=lerp(200,255,k); g=lerp(210,220,k); b=lerp(220,235,k); a=k*(1-0.25*depth);} else {const gradScale=(shadeQ===1?0.4:0.5); const dx=(dArr[i+1]-dArr[i-1])*gradScale, dy=(dArr[i+W]-dArr[i-W])*gradScale; let nx=-dx*2, ny=-dy*2, nz=1; const inv=1/Math.hypot(nx,ny,nz); nx*=inv; ny*=inv; nz*=inv; const ndl=nx*Lx+ny*Ly+nz*Lz; const diffuse=clamp(ndl,0,1); const rim=Math.pow(clamp(1-ndl,0,1), 2.2+charge*0.8); const shadow=clamp(-ndl,0,1); const light=[ lerp(255,255,base.warm), lerp(255,210,base.warm), lerp(255,160,base.warm) ]; const shad=[200,210,220]; r=lerp(shad[0], light[0], diffuse) + rim*(40+40*charge) - shadow*(25*charge); g=lerp(shad[1], light[1], diffuse) + rim*(30+35*charge) - shadow*(35*charge); b=lerp(shad[2], light[2], diffuse) + rim*(10+15*charge) - shadow*(20*charge); a=smoothstep(0.04,0.92,d)*(1-0.25*depth); r=lerp(r,160, base.fade*depth); g=lerp(g,175, base.fade*depth); b=lerp(b,205, base.fade*depth);} const p=i*4; id[p]=r|0; id[p+1]=g|0; id[p+2]=b|0; id[p+3]=(a*255)|0;
+          const i=row+x; const d=clamp(dArr[i],0,1.25); let r,g,b,a; if(shadeQ===0){const k=smoothstep(0.05,0.95,d); r=lerp(shad[0],light[0],k); g=lerp(shad[1],light[1],k); b=lerp(shad[2],light[2],k); a=k*(1-0.25*depth);} else {const gradScale=(shadeQ===1?0.4:0.5); const dx=(dArr[i+1]-dArr[i-1])*gradScale, dy=(dArr[i+W]-dArr[i-W])*gradScale; let nx=-dx*2, ny=-dy*2, nz=1; const inv=1/Math.hypot(nx,ny,nz); nx*=inv; ny*=inv; nz*=inv; const ndl=nx*Lx+ny*Ly+nz*Lz; const diffuse=clamp(ndl,0,1); const rim=Math.pow(clamp(1-ndl,0,1), 2.2+charge*0.8); const shadow=clamp(-ndl,0,1); r=lerp(shad[0], light[0], diffuse) + rim*(40+40*charge) - shadow*(25*charge); g=lerp(shad[1], light[1], diffuse) + rim*(30+35*charge) - shadow*(35*charge); b=lerp(shad[2], light[2], diffuse) + rim*(10+15*charge) - shadow*(20*charge); a=smoothstep(0.04,0.92,d)*(1-0.25*depth);} r=lerp(r,haze[0], base.fade*depth); g=lerp(g,haze[1], base.fade*depth); b=lerp(b,haze[2], base.fade*depth); const p=i*4; id[p]=r|0; id[p+1]=g|0; id[p+2]=b|0; id[p+3]=(a*255*L.params.opacity)|0;
         }
       }
       L.offCtx.putImageData(L.idata,0,0);
@@ -262,7 +284,7 @@
   parEl.oninput=e=>{base.parallax=+e.target.value; valPar.textContent=e.target.value};
   spreadEl.oninput=e=>{base.spread=+e.target.value; valSpread.textContent=e.target.value};
 
-  function loadLayerUI(){const L=layers[paintLayerIndex]; if(!L) return; covEl.value=L.params.cov; valCov.textContent=(+covEl.value).toFixed(2); turbEl.value=L.params.turb; valTurb.textContent=(+turbEl.value).toFixed(2); wspdEl.value=L.params.wind; valWspd.textContent=(+wspdEl.value).toFixed(2); wdirEl.value=Math.round(L.params.wdir*180/Math.PI); valWdir.textContent=wdirEl.value+'°'; tempEl.value=L.params.temp; valTemp.textContent=(+tempEl.value).toFixed(2); decayEl.value=L.params.decay; valDecay.textContent=(+decayEl.value).toFixed(3); liftEl.value=L.params.lift; valLift.textContent=(+liftEl.value).toFixed(1); chargeEl.value=L.params.charge; valCharge.textContent=(+chargeEl.value).toFixed(2); }
+  function loadLayerUI(){const L=layers[paintLayerIndex]; if(!L) return; covEl.value=L.params.cov; valCov.textContent=(+covEl.value).toFixed(2); turbEl.value=L.params.turb; valTurb.textContent=(+turbEl.value).toFixed(2); wspdEl.value=L.params.wind; valWspd.textContent=(+wspdEl.value).toFixed(2); wdirEl.value=Math.round(L.params.wdir*180/Math.PI); valWdir.textContent=wdirEl.value+'°'; tempEl.value=L.params.temp; valTemp.textContent=(+tempEl.value).toFixed(2); decayEl.value=L.params.decay; valDecay.textContent=(+decayEl.value).toFixed(3); liftEl.value=L.params.lift; valLift.textContent=(+L.params.lift).toFixed(1); chargeEl.value=L.params.charge; valCharge.textContent=(+L.params.charge).toFixed(2); clightEl.value=L.params.clight; valCL.textContent=L.params.clight.toUpperCase(); cshadowEl.value=L.params.cshadow; valCS.textContent=L.params.cshadow.toUpperCase(); opEl.value=L.params.opacity; valOP.textContent=(+opEl.value).toFixed(2); bgtEl.value=L.params.bgTop; valBGT.textContent=L.params.bgTop.toUpperCase(); bgbEl.value=L.params.bgBottom; valBGB.textContent=L.params.bgBottom.toUpperCase(); bgsEl.value=L.params.bgStrength; valBGS.textContent=(+bgsEl.value).toFixed(2); }
   function bindPerLayer(){
     covEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.cov=+e.target.value; valCov.textContent=e.target.value};
     turbEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.turb=+e.target.value; valTurb.textContent=e.target.value};
@@ -272,20 +294,26 @@
     decayEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.decay=+e.target.value; valDecay.textContent=(+e.target.value).toFixed(3)};
     liftEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.lift=+e.target.value; valLift.textContent=(+e.target.value).toFixed(1)};
     chargeEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.charge=+e.target.value; valCharge.textContent=e.target.value};
+    clightEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.clight=e.target.value; valCL.textContent=e.target.value.toUpperCase(); syncColors(L)};
+    cshadowEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.cshadow=e.target.value; valCS.textContent=e.target.value.toUpperCase(); syncColors(L)};
+    opEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.opacity=+e.target.value; valOP.textContent=(+e.target.value).toFixed(2)};
+    bgtEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.bgTop=e.target.value; valBGT.textContent=e.target.value.toUpperCase(); syncColors(L)};
+    bgbEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.bgBottom=e.target.value; valBGB.textContent=e.target.value.toUpperCase(); syncColors(L)};
+    bgsEl.oninput=e=>{const L=layers[paintLayerIndex]; L.params.bgStrength=+e.target.value; valBGS.textContent=(+e.target.value).toFixed(2)};
   }
   bindPerLayer();
 
   document.getElementById('pause').onclick=e=>{base.paused=!base.paused; e.target.textContent=base.paused?'Resume':'Pause'};
   let animateSun=false; document.getElementById('sunset').onclick=e=>{animateSun=!animateSun; e.target.textContent=animateSun?'Stop Sweep':'Sunset Sweep'};
-  window.addEventListener('keydown',e=>{if(e.code==='Space'){base.paused=!base.paused; document.getElementById('pause').textContent=base.paused?'Resume':'Pause'} if(e.key==='s'||e.key==='S'){animateSun=!animateSun; document.getElementById('sunset').textContent=animateSun?'Stop Sweep':'Sunset Sweep'}});
+  window.addEventListener('keydown',e=>{if(e.code==='Space'){base.paused=!base.paused; document.getElementById('pause').textContent=base.paused?'Resume':'Pause'} if(e.key==='s'||e.key==='S'){animateSun=!animateSun; document.getElementById('sunset').textContent=animateSun?'Stop Sweep':'Sunset Sweep'} if(e.key==='m'||e.key==='M'){toggleBtn.click()}});
 
   function reseedOne(L){randomizeLayerSeeds(L); initFields(L)}
   reseedLayerBtn.onclick=()=>{const L=layers[paintLayerIndex]; reseedOne(L)}
   reseedAllBtn.onclick=()=>{for(const L of layers) reseedOne(L)}
 
-  function setCollapsed(c){panel.classList.toggle('collapsed',c); toggleBtn.textContent=c?'☰':'–'; try{localStorage.setItem('panelCollapsed',c?'1':'0')}catch(e){} }
-  toggleBtn.onclick=()=>{setCollapsed(!panel.classList.contains('collapsed'))}
-  try{setCollapsed(localStorage.getItem('panelCollapsed')==='1')}catch(e){}
+  function applyCollapseState(collapsed){const panel=document.getElementById('panel'); if(collapsed){panel.classList.add('collapsed'); toggleBtn.textContent='☰'} else {panel.classList.remove('collapsed'); toggleBtn.textContent='–'} localStorage.setItem('cloudLoungeCollapsed', collapsed?'1':'0')}
+  toggleBtn.onclick=()=>{const panel=document.getElementById('panel'); applyCollapseState(!panel.classList.contains('collapsed'))}
+  const startCollapsed=localStorage.getItem('cloudLoungeCollapsed')==='1'; applyCollapseState(startCollapsed)
 
   DPR=1; recomputeResolution(); ensureLayers(+layersEl.value);
   paintLayerIndex=Math.min(1,layers.length-1); paintSel.value=String(paintLayerIndex); loadLayerUI();

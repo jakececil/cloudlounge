@@ -3,14 +3,20 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cloud & Sunset Toy — Per‑Layer Memory Edition (Compact UI)</title>
+<title>Cloud & Sunset Toy — Per‑Layer Memory Edition (Compact UI + Minimize)</title>
 <style>
   :root{--panel:#171a23cc;--border:#272b36;--text:#e9ecf2;--sub:#a5adba;--accent:#ff7b4a}
   html,body{margin:0;height:100%;background:#0b0e14;color:var(--text);font:12px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;overflow:hidden}
   canvas{display:block;width:100vw;height:100vh}
   #panel{position:fixed;right:12px;top:12px;width:480px;max-width:calc(100vw - 24px);background:var(--panel);border:1px solid var(--border);backdrop-filter:blur(6px);border-radius:10px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.35);user-select:none}
+  #panel.collapsed{background:transparent;border:0;box-shadow:none;padding:0;width:auto}
+  #panel.collapsed h1{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:4px 6px;margin:0}
+  #panelBody{margin-top:6px}
+  #panel.collapsed #panelBody{display:none}
   h1{margin:0 0 6px 0;font-size:14px;display:flex;align-items:center;gap:8px}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+  #togglePanel{margin-left:auto;background:#0f1219;color:var(--text);border:1px solid #2a2f3a;border-radius:8px;padding:4px 8px;cursor:pointer}
+  #togglePanel:hover{background:#151a25}
   .sub{color:var(--sub);font-size:11px;margin:0 0 6px}
   .row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;margin:2px 0}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -30,59 +36,61 @@
 <body>
 <canvas id="view"></canvas>
 <aside id="panel">
-  <h1><span class="dot"></span> Cloud • Sunset Toy — Per‑Layer Memory</h1>
-  <div class="sub">Per‑layer seeds & parameters; switching layers recalls that layer’s settings. Drag to paint humidity. <b>Shift</b> to erase.</div>
+  <h1><span class="dot"></span> Cloud • Sunset Toy — Per‑Layer Memory <button id="togglePanel">–</button></h1>
+  <div id="panelBody">
+    <div class="sub">Per‑layer seeds & parameters; switching layers recalls that layer’s settings. Drag to paint humidity. <b>Shift</b> to erase.</div>
 
-  <div class="two">
-    <div class="row"><label>Layers</label><input id="layers" type="range" min="1" max="5" step="1" value="3"/><small id="val-layers">3</small></div>
-    <div class="row"><label>Paint layer</label><select id="paintLayer"></select><small></small></div>
-  </div>
-
-  <div class="group">
     <div class="two">
-      <div class="row"><label>Render scale</label><input id="renderScale" type="range" min="0.30" max="1.40" step="0.01" value="0.50"/><small id="val-rs">0.50×</small></div>
-      <div class="row"><label>FPS cap</label><input id="fpsCap" type="range" min="20" max="60" step="1" value="30"/><small id="val-fps">30</small></div>
-      <div class="row"><label>Shading</label><select id="shadeQ"><option value="0">Flat</option><option value="1" selected>Fast</option><option value="2">High</option></select><small></small></div>
-      <div class="row"><label>Stagger</label><select id="stagger"><option value="0" selected>Off</option><option value="2">2×</option><option value="3">3×</option></select><small></small></div>
-      <div class="row"><label>Depth blur</label><select id="depthBlur"><option value="off" selected>Off</option><option value="on">On</option></select><small></small></div>
-      <div class="row"><label>HiDPI</label><select id="hidpi"><option value="off" selected>Off</option><option value="on">On</option></select><small></small></div>
+      <div class="row"><label>Layers</label><input id="layers" type="range" min="1" max="5" step="1" value="3"/><small id="val-layers">3</small></div>
+      <div class="row"><label>Paint layer</label><select id="paintLayer"></select><small></small></div>
     </div>
-    <div class="row"><label>Auto‑perf</label><select id="autoperf"><option value="off" selected>Off</option><option value="on">On</option></select><small></small></div>
-    <div id="stats"><div>Internal: <span id="resLabel">—</span></div><div>EMA ms: <span id="emaLabel">—</span></div></div>
-  </div>
 
-  <div class="group">
+    <div class="group">
+      <div class="two">
+        <div class="row"><label>Render scale</label><input id="renderScale" type="range" min="0.30" max="1.40" step="0.01" value="0.50"/><small id="val-rs">0.50×</small></div>
+        <div class="row"><label>FPS cap</label><input id="fpsCap" type="range" min="20" max="60" step="1" value="30"/><small id="val-fps">30</small></div>
+        <div class="row"><label>Shading</label><select id="shadeQ"><option value="0">Flat</option><option value="1" selected>Fast</option><option value="2">High</option></select><small></small></div>
+        <div class="row"><label>Stagger</label><select id="stagger"><option value="0" selected>Off</option><option value="2">2×</option><option value="3">3×</option></select><small></small></div>
+        <div class="row"><label>Depth blur</label><select id="depthBlur"><option value="off" selected>Off</option><option value="on">On</option></select><small></small></div>
+        <div class="row"><label>HiDPI</label><select id="hidpi"><option value="off" selected>Off</option><option value="on">On</option></select><small></small></div>
+      </div>
+      <div class="row"><label>Auto‑perf</label><select id="autoperf"><option value="off" selected>Off</option><option value="on">On</option></select><small></small></div>
+      <div id="stats"><div>Internal: <span id="resLabel">—</span></div><div>EMA ms: <span id="emaLabel">—</span></div></div>
+    </div>
+
+    <div class="group">
+      <div class="two">
+        <div class="row"><label>Sun elev</label><input id="elev" type="range" min="0" max="85" step="1" value="18"/><small id="val-elev">18°</small></div>
+        <div class="row"><label>Sun azim</label><input id="az" type="range" min="-180" max="180" step="1" value="-8"/><small id="val-az">-8°</small></div>
+        <div class="row"><label>Warmth</label><input id="warm" type="range" min="0" max="1" step="0.01" value="0.85"/><small id="val-warm">0.85</small></div>
+        <div class="row"><label>Depth fade</label><input id="fade" type="range" min="0" max="1" step="0.01" value="0.45"/><small id="val-fade">0.45</small></div>
+        <div class="row"><label>Blur radius</label><input id="blur" type="range" min="0" max="8" step="0.1" value="3"/><small id="val-blur">3.0px</small></div>
+        <div class="row"><label>Parallax</label><input id="parallax" type="range" min="0" max="1" step="0.01" value="0.55"/><small id="val-par">0.55</small></div>
+        <div class="row"><label>Layer spread</label><input id="spread" type="range" min="0" max="1" step="0.01" value="0.35"/><small id="val-spread">0.35</small></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="two">
+        <div class="row"><label>Coverage</label><input id="cov" type="range" min="0" max="1" step="0.01"/><small id="val-cov">0.55</small></div>
+        <div class="row"><label>Turbulence</label><input id="turb" type="range" min="0.3" max="2.5" step="0.01"/><small id="val-turb">1.10</small></div>
+        <div class="row"><label>Wind speed</label><input id="wspd" type="range" min="0" max="1.2" step="0.01"/><small id="val-wspd">0.40</small></div>
+        <div class="row"><label>Wind dir</label><input id="wdir" type="range" min="-180" max="180" step="1"/><small id="val-wdir">20°</small></div>
+        <div class="row"><label>Temperature</label><input id="temp" type="range" min="0" max="1" step="0.01"/><small id="val-temp">0.50</small></div>
+        <div class="row"><label>Decay</label><input id="decay" type="range" min="0.005" max="0.08" step="0.001"/><small id="val-decay">0.020</small></div>
+        <div class="row"><label>Lift</label><input id="lift" type="range" min="0" max="16" step="0.1"/><small id="val-lift">7.0</small></div>
+        <div class="row"><label>Charge</label><input id="charge" type="range" min="0" max="2.0" step="0.01"/><small id="val-charge">0.60</small></div>
+      </div>
+    </div>
+
     <div class="two">
-      <div class="row"><label>Sun elev</label><input id="elev" type="range" min="0" max="85" step="1" value="18"/><small id="val-elev">18°</small></div>
-      <div class="row"><label>Sun azim</label><input id="az" type="range" min="-180" max="180" step="1" value="-8"/><small id="val-az">-8°</small></div>
-      <div class="row"><label>Warmth</label><input id="warm" type="range" min="0" max="1" step="0.01" value="0.85"/><small id="val-warm">0.85</small></div>
-      <div class="row"><label>Depth fade</label><input id="fade" type="range" min="0" max="1" step="0.01" value="0.45"/><small id="val-fade">0.45</small></div>
-      <div class="row"><label>Blur radius</label><input id="blur" type="range" min="0" max="8" step="0.1" value="3"/><small id="val-blur">3.0px</small></div>
-      <div class="row"><label>Parallax</label><input id="parallax" type="range" min="0" max="1" step="0.01" value="0.55"/><small id="val-par">0.55</small></div>
-      <div class="row"><label>Layer spread</label><input id="spread" type="range" min="0" max="1" step="0.01" value="0.35"/><small id="val-spread">0.35</small></div>
+      <button id="sunset" class="pill">Sunset Sweep</button>
+      <button id="pause" class="pill">Pause</button>
     </div>
-  </div>
-
-  <div class="group">
-    <div class="two">
-      <div class="row"><label>Coverage</label><input id="cov" type="range" min="0" max="1" step="0.01"/><small id="val-cov">0.55</small></div>
-      <div class="row"><label>Turbulence</label><input id="turb" type="range" min="0.3" max="2.5" step="0.01"/><small id="val-turb">1.10</small></div>
-      <div class="row"><label>Wind speed</label><input id="wspd" type="range" min="0" max="1.2" step="0.01"/><small id="val-wspd">0.40</small></div>
-      <div class="row"><label>Wind dir</label><input id="wdir" type="range" min="-180" max="180" step="1"/><small id="val-wdir">20°</small></div>
-      <div class="row"><label>Temperature</label><input id="temp" type="range" min="0" max="1" step="0.01"/><small id="val-temp">0.50</small></div>
-      <div class="row"><label>Decay</label><input id="decay" type="range" min="0.005" max="0.08" step="0.001"/><small id="val-decay">0.020</small></div>
-      <div class="row"><label>Lift</label><input id="lift" type="range" min="0" max="16" step="0.1"/><small id="val-lift">7.0</small></div>
-      <div class="row"><label>Charge</label><input id="charge" type="range" min="0" max="2.0" step="0.01"/><small id="val-charge">0.60</small></div>
+    <div class="two" style="margin-top:4px">
+      <button id="reseedLayer" class="pill">Reseed Layer</button>
+      <button id="reseedAll" class="pill">Reseed All</button>
     </div>
-  </div>
-
-  <div class="two">
-    <button id="sunset" class="pill">Sunset Sweep</button>
-    <button id="pause" class="pill">Pause</button>
-  </div>
-  <div class="two" style="margin-top:4px">
-    <button id="reseedLayer" class="pill">Reseed Layer</button>
-    <button id="reseedAll" class="pill">Reseed All</button>
   </div>
 </aside>
 <div id="toast">drag to add humidity • Shift-drag to erase • [Space]=Pause, S=Sunset</div>
@@ -131,6 +139,9 @@
 
   const reseedLayerBtn=qs('reseedLayer');
   const reseedAllBtn=qs('reseedAll');
+  const toggleBtn=qs('togglePanel');
+  const panel=qs('panel');
+  const panelBody=qs('panelBody');
 
   const base={elev:18*Math.PI/180,az:-8*Math.PI/180,warm:0.85,fade:0.45,blur:3,parallax:0.55,spread:0.35,paused:false,shadeQ:1,depthBlur:false};
   const LDEF={cov:0.55,turb:1.10,wind:0.40,wdir:20*Math.PI/180,temp:0.5,decay:0.02,lift:7.0,charge:0.6};
@@ -271,6 +282,10 @@
   function reseedOne(L){randomizeLayerSeeds(L); initFields(L)}
   reseedLayerBtn.onclick=()=>{const L=layers[paintLayerIndex]; reseedOne(L)}
   reseedAllBtn.onclick=()=>{for(const L of layers) reseedOne(L)}
+
+  function setCollapsed(c){panel.classList.toggle('collapsed',c); toggleBtn.textContent=c?'☰':'–'; try{localStorage.setItem('panelCollapsed',c?'1':'0')}catch(e){} }
+  toggleBtn.onclick=()=>{setCollapsed(!panel.classList.contains('collapsed'))}
+  try{setCollapsed(localStorage.getItem('panelCollapsed')==='1')}catch(e){}
 
   DPR=1; recomputeResolution(); ensureLayers(+layersEl.value);
   paintLayerIndex=Math.min(1,layers.length-1); paintSel.value=String(paintLayerIndex); loadLayerUI();
